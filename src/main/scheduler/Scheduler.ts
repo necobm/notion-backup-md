@@ -4,6 +4,7 @@ import { listWorkspaces } from '../db/workspaces'
 import { BackupManager } from '../backup/BackupManager'
 import { NotionProvider } from '../backup/providers/NotionProvider'
 import { FileStorage } from '../backup/storage/FileStorage'
+import { toCronExpression } from '../utils/cronConverter'
 
 export class Scheduler {
   private tasks: Map<number, cron.ScheduledTask> = new Map()
@@ -36,7 +37,14 @@ export class Scheduler {
     const enabled = getSetting(workspaceId, 'scheduleEnabled')
     if (!enabled) return
 
-    const cronExpr = getSetting(workspaceId, 'scheduleCron')
+    // Get the new schedule settings
+    const frequency = getSetting(workspaceId, 'scheduleFrequency')
+    const time = getSetting(workspaceId, 'scheduleTime')
+    const days = getSetting(workspaceId, 'scheduleDays')
+
+    // Convert to cron expression
+    const cronExpr = toCronExpression(frequency, time, days)
+
     if (!cron.validate(cronExpr)) return
 
     const task = cron.schedule(cronExpr, () => this.runBackup(workspaceId))
