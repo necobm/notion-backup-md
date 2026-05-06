@@ -12,11 +12,9 @@ function sanitizeName(name: string): string {
     .slice(0, 200)
 }
 
-export type BackupProgress = {
-  type: 'page'
-  title: string
-  path: string
-}
+export type BackupProgress = 
+  | { type: 'start'; jobId: number }
+  | { type: 'page'; title: string; path: string }
 
 export class BackupManager {
   constructor(
@@ -30,6 +28,8 @@ export class BackupManager {
       `INSERT INTO sync_jobs (started_at, status) VALUES (?, 'running')`
     )
     const jobId = Number(stmt.run(new Date().toISOString()).lastInsertRowid)
+
+    onProgress?.({ type: 'start', jobId })
 
     try {
       const rootPages = await this.provider.fetchRootPages()

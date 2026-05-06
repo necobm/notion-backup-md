@@ -7,7 +7,7 @@ type RunState = 'idle' | 'running' | 'success' | 'error'
 export default function Dashboard() {
   const [runState, setRunState] = useState<RunState>('idle')
   const [message, setMessage] = useState('')
-  const [log, setLog] = useState<BackupProgress[]>([])
+  const [log, setLog] = useState<Extract<BackupProgress, { type: 'page' }>[]>([])
   const [history, setHistory] = useState<SyncJob[]>([])
 
   const loadHistory = useCallback(async () => {
@@ -25,7 +25,11 @@ export default function Dashboard() {
     setMessage('')
 
     const unsub = window.api.backup.onProgress((event) => {
-      setLog((prev) => [...prev, event])
+      if (event.type === 'start') {
+        loadHistory()
+      } else if (event.type === 'page') {
+        setLog((prev) => [...prev, event])
+      }
     })
 
     try {
