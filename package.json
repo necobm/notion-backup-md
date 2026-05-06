@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "Desktop app to backup Notion pages as Markdown files",
   "main": "./out/main/index.js",
-  "author": "",
+  "author": {
+    "name": "Néstor Brito",
+    "email": "nbrito87@gmail.com"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
@@ -47,6 +50,7 @@
   "build": {
     "appId": "com.notion.backup.md",
     "productName": "Notion Backup MD",
+    "executableName": "notion-backup-md",
     "directories": {
       "output": "release/${version}"
     },

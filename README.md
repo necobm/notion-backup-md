@@ -109,6 +109,15 @@ sudo chown root:root node_modules/electron/dist/chrome-sandbox && sudo chmod 475
 ELECTRON_DISABLE_SANDBOX=1 npm run dev
 ```
 
+### Linux: Installed App (.deb) fails to launch
+If the installed app doesn't open or shows a `zygote_host_impl_linux.cc` error in the terminal:
+
+1. **Launch with no-sandbox**:
+   ```bash
+   notion-backup-md --no-sandbox
+   ```
+2. **Path issues**: Ensure the `executableName` in `package.json` does not contain spaces.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
