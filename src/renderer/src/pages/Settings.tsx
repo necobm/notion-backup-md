@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
-import type { Settings } from '../../../shared/types'
+import type { Settings, ScheduleFrequency } from '../../../shared/types'
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' }
+]
 
 export default function SettingsPage({ workspaceId }: { workspaceId: number }) {
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -20,6 +30,15 @@ export default function SettingsPage({ workspaceId }: { workspaceId: number }) {
   async function pickDirectory() {
     const path = await window.api.dialog.selectDirectory()
     if (path) update('backupRootPath', path)
+  }
+
+  function toggleDay(day: number) {
+    if (!settings) return
+    const currentDays = settings.scheduleDays
+    const newDays = currentDays.includes(day)
+      ? currentDays.filter((d) => d !== day)
+      : [...currentDays, day].sort((a, b) => a - b)
+    update('scheduleDays', newDays)
   }
 
   if (!settings) return <p>Loading…</p>
@@ -73,16 +92,66 @@ export default function SettingsPage({ workspaceId }: { workspaceId: number }) {
           Enable scheduled backup
         </label>
         {settings.scheduleEnabled && (
-          <label className="field-label">
-            Cron Expression
-            <input
-              type="text"
-              value={settings.scheduleCron}
-              onChange={(e) => update('scheduleCron', e.target.value)}
-              className="field-input"
-            />
-            <span className="hint">E.g. <code>0 2 * * *</code> = daily at 2 AM</span>
-          </label>
+          <>
+            <label className="field-label">
+              Frequency
+              <select
+                value={settings.scheduleFrequency}
+                onChange={(e) => update('scheduleFrequency', e.target.value as ScheduleFrequency)}
+                className="field-input"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Once a week</option>
+                <option value="custom-days">Custom days</option>
+              </select>
+            </label>
+
+            {settings.scheduleFrequency === 'weekly' && (
+              <label className="field-label">
+                Day of the week
+                <select
+                  value={settings.scheduleDays[0] ?? 1}
+                  onChange={(e) => update('scheduleDays', [parseInt(e.target.value, 10)])}
+                  className="field-input"
+                >
+                  {DAYS_OF_WEEK.map((day) => (
+                    <option key={day.value} value={day.value}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {settings.scheduleFrequency === 'custom-days' && (
+              <div className="field-label">
+                Days of the week
+                <div className="day-selector">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <label key={day.value} className="day-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={settings.scheduleDays.includes(day.value)}
+                        onChange={() => toggleDay(day.value)}
+                      />
+                      <span>{day.label.slice(0, 3)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <label className="field-label">
+              Time
+              <input
+                type="time"
+                value={settings.scheduleTime}
+                onChange={(e) => update('scheduleTime', e.target.value)}
+                className="field-input time-input"
+              />
+              <span className="hint">Backup will run at this time</span>
+            </label>
+          </>
         )}
       </section>
 
