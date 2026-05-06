@@ -41,9 +41,9 @@ app.whenReady().then(() => {
   })
 
   initDatabase()
-  registerIpcHandlers()
 
   scheduler = new Scheduler()
+  registerIpcHandlers(scheduler)
   scheduler.start()
 
   createWindow()

@@ -3,7 +3,7 @@ import type {
   PageObjectResponse,
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
-import type { ISourceProvider, PageNode } from './ISourceProvider'
+import type { ISourceProvider } from './ISourceProvider'
 
 function getPageTitle(page: PageObjectResponse): string {
   const titleProp = Object.values(page.properties).find((p) => p.type === 'title')
@@ -80,11 +80,9 @@ export class NotionProvider implements ISourceProvider {
     for (const result of response.results) {
       if (result.object !== 'page') continue
       const page = result as PageObjectResponse
-      // only include pages without a parent page (true root pages)
-      if (page.parent.type === 'workspace' || page.parent.type === 'page') {
-        if (page.parent.type === 'workspace') {
-          rootPages.push(await this.fetchPageTree(page.id))
-        }
+      // only include pages whose parent is the workspace (true root pages)
+      if (page.parent.type === 'workspace') {
+        rootPages.push(await this.fetchPageTree(page.id))
       }
     }
     return rootPages

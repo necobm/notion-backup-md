@@ -2,6 +2,8 @@ import { join } from 'path'
 import { getDb } from '../db'
 import type { ISourceProvider, PageNode } from './providers/ISourceProvider'
 import type { IStorage } from './storage/IStorage'
+import type { BackupProgress } from '../../shared/types'
+export type { BackupProgress }
 
 /** Sanitize a page title to be safe as a directory/file name. */
 function sanitizeName(name: string): string {
@@ -12,12 +14,9 @@ function sanitizeName(name: string): string {
     .slice(0, 200)
 }
 
-export type BackupProgress = 
-  | { type: 'start'; jobId: number }
-  | { type: 'page'; title: string; path: string }
-
 export class BackupManager {
   constructor(
+    private readonly workspaceId: number,
     private readonly provider: ISourceProvider,
     private readonly storage: IStorage
   ) {}
@@ -25,9 +24,9 @@ export class BackupManager {
   async run(onProgress?: (event: BackupProgress) => void): Promise<number> {
     const db = getDb()
     const stmt = db.prepare(
-      `INSERT INTO sync_jobs (started_at, status) VALUES (?, 'running')`
+      `INSERT INTO sync_jobs (workspace_id, started_at, status) VALUES (?, ?, 'running')`
     )
-    const jobId = Number(stmt.run(new Date().toISOString()).lastInsertRowid)
+    const jobId = Number(stmt.run(this.workspaceId, new Date().toISOString()).lastInsertRowid)
 
     onProgress?.({ type: 'start', jobId })
 

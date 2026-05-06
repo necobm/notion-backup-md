@@ -1,41 +1,58 @@
 import cron from 'node-cron'
 import { getSetting } from '../db/settings'
+import { listWorkspaces } from '../db/workspaces'
 import { BackupManager } from '../backup/BackupManager'
 import { NotionProvider } from '../backup/providers/NotionProvider'
 import { FileStorage } from '../backup/storage/FileStorage'
 
 export class Scheduler {
-  private task: cron.ScheduledTask | null = null
+  private tasks: Map<number, cron.ScheduledTask> = new Map()
 
   start(): void {
-    this.reschedule()
+    this.rescheduleAll()
   }
 
-  stop(): void {
-    this.task?.stop()
-    this.task = null
+  stop(workspaceId?: number): void {
+    if (workspaceId !== undefined) {
+      this.tasks.get(workspaceId)?.stop()
+      this.tasks.delete(workspaceId)
+    } else {
+      for (const task of this.tasks.values()) task.stop()
+      this.tasks.clear()
+    }
   }
 
-  /** Call this after the user changes schedule settings in the UI. */
-  reschedule(): void {
-    this.task?.stop()
-    this.task = null
+  rescheduleAll(): void {
+    for (const ws of listWorkspaces()) {
+      this.reschedule(ws.id)
+    }
+  }
 
-    const enabled = getSetting('scheduleEnabled')
+  /** Call this after the user changes schedule settings for a workspace. */
+  reschedule(workspaceId: number): void {
+    this.tasks.get(workspaceId)?.stop()
+    this.tasks.delete(workspaceId)
+
+    const enabled = getSetting(workspaceId, 'scheduleEnabled')
     if (!enabled) return
 
-    const cronExpr = getSetting('scheduleCron')
+    const cronExpr = getSetting(workspaceId, 'scheduleCron')
     if (!cron.validate(cronExpr)) return
 
-    this.task = cron.schedule(cronExpr, () => this.runBackup())
+    const task = cron.schedule(cronExpr, () => this.runBackup(workspaceId))
+    this.tasks.set(workspaceId, task)
   }
 
-  private async runBackup(): Promise<void> {
-    const token = getSetting('notionToken')
-    const rootPath = getSetting('backupRootPath')
+  private async runBackup(workspaceId: number): Promise<void> {
+    const token = getSetting(workspaceId, 'notionToken')
+    const rootPath = getSetting(workspaceId, 'backupRootPath')
     if (!token || !rootPath) return
 
-    const manager = new BackupManager(new NotionProvider(token), new FileStorage(rootPath))
+    const manager = new BackupManager(
+      workspaceId,
+      new NotionProvider(token),
+      new FileStorage(rootPath)
+    )
     await manager.run()
   }
 }

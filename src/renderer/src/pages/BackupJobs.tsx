@@ -1,21 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { SyncJob } from '../../../preload'
-import type { BackupProgress } from '../../../main/backup/BackupManager'
+import type { SyncJob, BackupProgress } from '../../../shared/types'
 
 type RunState = 'idle' | 'running' | 'success' | 'error'
 
-export default function Dashboard() {
+export default function BackupJobs({ workspaceId }: { workspaceId: number }) {
   const [runState, setRunState] = useState<RunState>('idle')
   const [message, setMessage] = useState('')
   const [log, setLog] = useState<Extract<BackupProgress, { type: 'page' }>[]>([])
   const [history, setHistory] = useState<SyncJob[]>([])
 
   const loadHistory = useCallback(async () => {
-    const jobs = await window.api.backup.history()
+    const jobs = await window.api.backup.history(workspaceId)
     setHistory(jobs)
-  }, [])
+  }, [workspaceId])
 
   useEffect(() => {
+    setRunState('idle')
+    setMessage('')
+    setLog([])
     loadHistory()
   }, [loadHistory])
 
@@ -24,7 +26,7 @@ export default function Dashboard() {
     setLog([])
     setMessage('')
 
-    const unsub = window.api.backup.onProgress((event) => {
+    const unsub = window.api.backup.onProgress(workspaceId, (event) => {
       if (event.type === 'start') {
         loadHistory()
       } else if (event.type === 'page') {
@@ -33,7 +35,7 @@ export default function Dashboard() {
     })
 
     try {
-      const result = await window.api.backup.run()
+      const result = await window.api.backup.run(workspaceId)
       setMessage(`Backup complete — ${result.count} page(s) saved.`)
       setRunState('success')
       loadHistory()
@@ -47,7 +49,7 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <h1>Dashboard</h1>
+      <h1>Backup Jobs</h1>
 
       <section className="card">
         <h2>Manual Backup</h2>

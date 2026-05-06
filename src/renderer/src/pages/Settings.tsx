@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
-import type { Settings } from '../../../main/db/settings'
+import type { Settings } from '../../../shared/types'
 
-export default function SettingsPage() {
+export default function SettingsPage({ workspaceId }: { workspaceId: number }) {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    window.api.settings.get().then(setSettings)
-  }, [])
+    setSettings(null)
+    window.api.settings.get(workspaceId).then(setSettings)
+  }, [workspaceId])
 
   async function update<K extends keyof Settings>(key: K, value: Settings[K]) {
-    await window.api.settings.set(key, value)
+    await window.api.settings.set(workspaceId, key, value)
     setSettings((prev) => prev ? { ...prev, [key]: value } : prev)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
